@@ -21,42 +21,22 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Objective 1: Import a Raster
 
-### Load packages
+### Load packages and functions
 ```{r load-packages}
 # Load up the packages we need to work with raster data
 library(raster)
 library(rgdal)
 library(rhdf5)
+library(foreach)
+source("Scripts/functions.R")
 ```
 
-### Define functions
-```{r functions}
-make_pdf <- function(expr, filename, ..., verbose = TRUE){
-  if (verbose) {
-    message("Creating: ", filename)
-  }
-  pdf(file = filename, ...)
-  on.exit(dev.off())
-  eval.parent(substitute(expr))
-}
-
-hist_plot_from_chm <- function(chm, title, breaks) {
-  hist(chm, main = title, xlab = "Canopy height (m)")
-  sapply(breaks, function(x) abline(v = x, col = 'red'))
-}
-
-density_plot_from_chm <- function(chm, title, breaks) {
-  density(chm, main = title, xlab = "Canopy height (m)")
-  sapply(breaks, function(x) abline(v = x, col = 'red'))
-}
-
-```
-
-
-### Grab raster
+### Grab raster and define breaks
 ```{r grab-raster}
 # Get canopy height model for Teakettle site
 chm <- raster("../NEONdata/D17-California/TEAK/2013/lidar/TEAK_lidarCHM.tif")
+# < 2m = grass, < 6m = small tree, > 6m = large tree
+breaks <- c(2, 6, 20, 40, 100)
 ```
 
 ## Objective 2: Set NA values
@@ -66,50 +46,39 @@ chm[chm == 0] <- NA
 ```
 
 ## Objective 3: Visualize distribution of the input data
-```{r original-raster-hist}
-density(chm)
+```{r original-raster-density}
+density_plot_from_chm(chm = chm,
+                      title = "Teakettle Site",
+                      breaks = breaks)
 ```
 
 ## Objective 4: Classify vegetation by height & show distribution
 ```{r reclass-trees}
-# < 2m = grass, < 6m = small tree, > 6m = large tree
-reclass <- c(0, 2, NA,
-             2, 6, 1,
-             6, 20, 2,
-             20, 40, 3,
-             40, 100, 4)
 # Turn reclass vector into a matrix
-reclass_mat <- matrix(reclass,
-                      ncol=3,
-                      byrow=TRUE)
+reclass_mat <- create_height_class_matrix(breaks)
 
 # Reclassify!
 chm_reclass <- reclassify(x = chm,
                           rcl = reclass_mat)
 # Density plot!
-density(chm)
-# Break lines, except for the zero point
-abline(v=reclass_mat[, 2][-1],
-       col='red')
+density_plot_from_chm(chm,
+                      title = "Teakettle Tree Height Density",
+                      breaks = breaks)
 ```
 
 ## Objective 5: Plot
 ```{r plot-reclass}
-plot(chm_reclass,
-     main = "Canopy Height Model\nReclassified by Height",
-     # them's the breaks
-     breaks=c(0, reclass_mat[,3][-1]),
-     # them's the colors on the breaks
-     col = c("goldenrod", "green", "blue", "violet"),
-     # No box
-     box = FALSE,
-     # No axes
-     axes = FALSE)
+chm_plot <- plot_reclassified_raster(rast.in = chm_reclass,
+                                     site.name = "Teakettle",
+                                     breaks = breaks)
 ```
 
 ## Objective 6: Output to PDF
 ```{r pdf-output}
-pdf(file = "../NEONdata/outputs/TEAK/TEAK_CHM_reclassified.pdf", width=6, height=7)
+make_pdf(expr = plot_reclassified_raster(rast.in = chm_reclass,
+                                     site.name = "Teakettle",
+                                     breaks = breaks),
+         filename = "TEAK_CHM_reclassified.pdf")
 ```
 
 ## Objective 7: Output to GeoTIFF
