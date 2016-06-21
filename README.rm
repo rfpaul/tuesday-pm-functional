@@ -1,0 +1,13 @@
+README for analyses of NEON LiDAR data
+
+Code written by:
+Robert Paul
+robertfpaul at gmail dot com
+
+Initial work done on 2016-06-21
+
+This set of analyses expects to have a directory of data 
+
+Some output files may be external to the directory, but can be generated from running the code.
+
+The main analyses are all run via R markdown (see the .Rmd file)
