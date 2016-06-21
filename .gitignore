@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 tuesday-pm-functional.Rproj
+*.html
+*.pdf
+*.tif
